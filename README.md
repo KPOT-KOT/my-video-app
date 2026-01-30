@@ -15,8 +15,8 @@ This project is a simple Node.js + Express application that lets you browse loca
 Clone the repository:
 
 ```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/KPOT-KOT/my-video-app.git
+cd my-video-app
 
 Install dependencies:
 
