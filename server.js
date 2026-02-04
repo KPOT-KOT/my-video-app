@@ -29,7 +29,7 @@ const decodePath = (p) => Buffer.from(p, 'base64').toString('utf8');
 // 1. FILE BROWSER ROUTE
 app.get('/', (req, res) => {
     const queryDir = req.query.dir ? decodePath(req.query.dir) : null;
-    
+
     let items = { directories: [], files: [] };
     let parentDir = null;
     let currentTitle = "My Movie Archives";
@@ -46,7 +46,7 @@ app.get('/', (req, res) => {
         try {
             currentTitle = queryDir;
             const files = fs.readdirSync(queryDir);
-            
+
             // Calculate parent directory if not at a root
             if (!ROOT_PATHS.includes(queryDir)) {
                 parentDir = encodePath(path.dirname(queryDir));
@@ -68,28 +68,47 @@ app.get('/', (req, res) => {
         }
     }
 
-    res.render('index', { 
-        items, 
-        parentDir, 
+    res.render('index', {
+        items,
+        parentDir,
         currentDirName: queryDir || "My Movie Archives",
-        encodePath 
+        encodePath
     });
 });
 
 // 2. PLAYER PAGE
 app.get('/player', (req, res) => {
     const filePath = decodePath(req.query.path);
-    res.render('player', { 
-        filename: path.basename(filePath), 
-        encodedPath: req.query.path 
+    const folder = path.dirname(filePath);
+
+    const files = fs.readdirSync(folder)
+        .filter(f => f.toLowerCase().endsWith('.mp4'))
+        .sort((a, b) => a.localeCompare(b));
+
+    const currentName = path.basename(filePath);
+    const index = files.indexOf(currentName);
+
+    const playlist = files.map(f => ({
+        encoded: encodePath(path.join(folder, f)),
+        name: f
+    }));
+
+    res.render('player', {
+        filename: currentName,
+        encodedPath: req.query.path,
+        playlist,
+        index,
+        parentDirEncoded: encodePath(folder)
     });
 });
 
 // 3. STREAMING ENGINE
 app.get('/video-stream', (req, res) => {
     const videoPath = decodePath(req.query.path);
-    
+
     if (!fs.existsSync(videoPath)) return res.status(404).send('File not found');
+
+
 
     const stat = fs.statSync(videoPath);
     const fileSize = stat.size;
@@ -98,7 +117,7 @@ app.get('/video-stream', (req, res) => {
 
     if (!range || range.startsWith('bytes=0-')) {
         console.log(`[WATCHED] File: ${videoPath} | IP: ${clientIp} | Time: ${new Date().toLocaleString()}`);
-    }    
+    }
 
     if (range) {
         const parts = range.replace(/bytes=/, "").split("-");
